@@ -1,4 +1,4 @@
-package com.hitscounter.app;
+package com.hitscounter.app.config;
 
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
@@ -8,6 +8,14 @@ public class Configurations {
     private static Configurations config;
     private JedisPool jedisPool;
     private Configurations() {
+    }
+
+    public static Configurations init(String redisHost) {
+        if(config == null) {
+            config = new Configurations();
+        }
+        config.jedisPool = config.jedisPool(redisHost, 6379);
+        return config;
     }
 
     public static Configurations init(

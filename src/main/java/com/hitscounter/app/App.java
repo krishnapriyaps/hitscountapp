@@ -1,37 +1,35 @@
 package com.hitscounter.app;
 
+import java.util.Scanner;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.hitscounter.app.config.Configurations;
 import com.hitscounter.app.dto.Hit;
-import com.hitscounter.app.dto.HitCounts;
-import com.hitscounter.app.utils.RandomUtils;
-import java.time.Instant;
-import java.util.List;
+import com.hitscounter.app.service.HitsServices;
+import com.hitscounter.app.service.impl.HitsServiceImpl;
+import com.hitscounter.app.service.impl.RedisCacheServiceImpl;
 
-/**
- * Hello world!
- *
- */
-public class App
-{
-    public static void main( String[] args )
-    {
+public class App {
+    public static void main(String[] args) {
         String hostName = args[0];
-        Configurations.init(hostName, 6379);
+        Configurations.init(hostName);
 
-        for(int i =0 ; i <10; i++) {
-            String userId = RandomUtils.generateUserId();
-            String url = RandomUtils.generateUrl();
-            String type = RandomUtils.generateType();
-            long timestamp = Instant.now().toEpochMilli();
-            Hit hit = Hit.HitBuilder.get()
-                .withUserId(userId)
-                .withUrl(url)
-                .withType(type)
-                .withTimestamp(timestamp)
-                .build();
-            System.out.println(hit);
-            HitsCounterApp app = new HitsCounterApp();
-            List<HitCounts> counts = app.updateHitsCache(hit);
-            counts.forEach(System.out::println);
+        Gson gson = new Gson();
+        HitsServices services =
+            new HitsServiceImpl(new RedisCacheServiceImpl(Configurations.get()));
+
+        // Using Scanner for Getting Input from User
+        Scanner in = new Scanner(System.in);
+        while(true) {
+            String json = in.nextLine();
+            try {
+                Hit hit = gson.fromJson(json, Hit.class);
+                services.addNewHit(hit);
+                System.out.println("");
+            } catch (JsonSyntaxException jsonSyntaxException) {
+                System.out.println("Invalid JSON syntax");
+            }
         }
     }
 }

@@ -6,7 +6,10 @@ public class Hit {
     private String type;
     private long timestamp;
 
-    private Hit(String userId, String url, String type, long timestamp) {
+    public Hit() {
+    }
+
+    public Hit(String userId, String url, String type, long timestamp) {
         this.userId = userId;
         this.url = url;
         this.type = type;

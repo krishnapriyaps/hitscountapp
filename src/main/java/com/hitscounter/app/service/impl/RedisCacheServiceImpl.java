@@ -1,10 +1,11 @@
-package com.hitscounter.app.service;
+package com.hitscounter.app.service.impl;
 
 import static java.lang.String.format;
 
-import com.hitscounter.app.Configurations;
+import com.hitscounter.app.config.Configurations;
 import com.hitscounter.app.dto.Hit;
 import com.hitscounter.app.dto.HitCounts;
+import com.hitscounter.app.service.CacheService;
 import com.hitscounter.app.utils.UrlUtils;
 import java.net.URISyntaxException;
 import java.util.HashMap;
@@ -15,10 +16,15 @@ import java.util.stream.Collectors;
 import redis.clients.jedis.Jedis;
 
 public class RedisCacheServiceImpl implements CacheService {
+    private final Configurations config;
     private static String USER_LOOPUP_PREFIX = "users:";
     private static String COUNT_LOOPUP_PREFIX = "count:";
     private static String URL_FIELD_KEY = "url";
     private static String COUNT_FIELD_KEY = "count";
+
+    public RedisCacheServiceImpl(Configurations config) {
+        this.config = config;
+    }
 
     private String getUrlUserLookUpKey(String url) throws URISyntaxException {
         String extractedUrl = UrlUtils.getUrl(url);
@@ -32,7 +38,7 @@ public class RedisCacheServiceImpl implements CacheService {
 
     @Override
     public boolean addCount(Hit hit) {
-        Jedis jedis = Configurations.get().getJedisPool().getResource();
+        Jedis jedis = config.getJedisPool().getResource();
 
         try {
             String urlUserKey = getUrlUserLookUpKey(hit.getUrl());
@@ -60,20 +66,23 @@ public class RedisCacheServiceImpl implements CacheService {
 
     @Override
     public List<HitCounts> retrieveCount() {
-        Jedis jedis =  Configurations.get().getJedisPool().getResource();
+        Jedis jedis =  config.getJedisPool().getResource();
 
         String pattern = format("%s*", COUNT_LOOPUP_PREFIX);
         Set<String> allUrlsKeys = jedis.keys(pattern);
         List<HitCounts> result = allUrlsKeys
             .parallelStream()
             .map((key) -> {
-                Jedis jedisCon =  Configurations.get().getJedisPool().getResource();
+                Jedis jedisCon =  config.getJedisPool().getResource();
                 Map<String, String> countObj = jedisCon.hgetAll(key);
+
                 jedisCon.close();
-                return new HitCounts(
+                HitCounts hc = new HitCounts(
                     countObj.get(URL_FIELD_KEY),
                     countObj.get(COUNT_FIELD_KEY)
                 );
+
+                return hc;
             })
             .collect(Collectors.toList());
         jedis.close();
